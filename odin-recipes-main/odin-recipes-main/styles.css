@@ -1,0 +1,48 @@
+/* styles FOR index.html */
+
+body {
+    background-color: black;
+    font-family: 'Courier New', Courier, monospace;
+    color: white;
+    text-align: center;
+}
+
+.title {
+    margin: 25px;
+    font-size: 70px;
+}
+
+.links {
+    padding: 8px;
+    font-size: 35px;
+}
+
+@keyframes color-cycle1 {
+  0% { color: #7CB342; }
+  50% { color: #F6E27F; }
+  100% { color: #8E8D45; }
+}
+
+#zs {
+    animation: color-cycle1 3s infinite alternate;
+}
+
+@keyframes color-cycle2 {
+  0% { color: #E6863B; }
+  50% { color: #B3392F; }
+  100% { color: #E2B48C; }
+}
+
+#cm {
+    animation: color-cycle2 3s infinite alternate;
+}
+
+@keyframes color-cycle3 {
+  0% { color: #F2C12E; }
+  50% { color: #F7F3F9; }
+  100% { color: #93A661; }
+}
+
+#pr {
+    animation: color-cycle3 3s infinite alternate;
+}

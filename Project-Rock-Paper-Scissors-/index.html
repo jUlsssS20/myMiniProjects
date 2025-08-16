@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script>
+        console.log("Hello World")
+
+        function getComputerChoice () {
+            //define a number equivalent between 0 and 1 using math.random function
+            let numberEquivalent = Math.random();
+
+            //return rock if the number equivalent is < 1/3
+            return numberEquivalent < 1/3 ? "rock" :
+
+            //return paper if the number equivalent is between 1/3 and 2/3
+            numberEquivalent < 2/3 ? "paper" :
+            
+            //return scissors if the number equivalent is not rocks or paper
+            "scissors";
+        }
+
+        function getHumanChoice () {
+            //prompt the user to input "rock", "paper", or "scissors"
+            let userInput = prompt("Rock, paper, or scissors?");
+            userInput = userInput.toLowerCase();
+
+            //return what the user inputs
+            return userInput == "rock" ? "rock" :
+            userInput == "paper" ? "paper" :
+            "scissors";
+        }
+
+        //this function gets the human and computer choice
+        //compares the choices to see the winner of the round
+        //returns the winner of the round
+        function checkRoundWinner (humanChoice, computerChoice) {
+            //define winner variable either tie, player, or computer
+            let winner = null;
+
+            //compare the choices using ? operator
+            humanChoice == "rock" && computerChoice == "scissors" ? winner = "human" :
+            humanChoice == "scissors" && computerChoice == "paper" ? winner = "human" :
+            humanChoice == "paper" && computerChoice == "rock" ? winner = "human" :
+            computerChoice == "rock" && humanChoice == "scissors" ? winner = "computer" :
+            computerChoice == "scissors" && humanChoice == "paper" ? winner = "computer" :
+            computerChoice == "paper" && humanChoice == "rock" ? winner = "computer": 
+            winner = "tie";
+
+            //update score
+            winner == "human" ? humanScore++ :
+            winner == "computer" ? computerScore++ :
+            null;
+
+            //log the winner
+            return winner;
+        }
+
+        //this function outputs the round winnner based on the playRound function and displays the current score
+        function outputRoundEndAlert (winner, humanChoice, computerChoice) {
+
+            let roundWinnerString; 
+
+            //outputs who the winner is
+            if (winner == "computer" && humanChoice == "rock") {
+                roundWinnerString = "You lose! Paper beats Rock."
+            }
+
+            else if (winner == "computer" && humanChoice == "paper") {
+                roundWinnerString = "You lose! Scissors beats Paper."
+            }
+
+            else if (winner == "computer" && humanChoice == "scissors") {
+                roundWinnerString = "You lose! Rock beats scissors."
+            }
+
+            else if (winner == "human") {
+                roundWinnerString = "You win!"
+            }
+
+            else if (winner == "tie") {
+                roundWinnerString = "It's a tie"
+            }
+
+            //outputs the score
+            let scoreString = ` ${humanScore} - ${computerScore}.`
+
+            //outputs the winner + score
+            let endRoundString = confirm(roundWinnerString + scoreString + " Ready for next round?");
+        }
+
+        function checkGameEnd () {
+            return (humanScore >= 3 || computerScore >= 3);
+        } 
+
+        //main
+        let humanScore = 0;
+        let computerScore = 0;
+        let humanChoice;
+        let computerChoice;
+
+        playGame();
+
+        function playGame () {
+            //confirm user is ready
+            let isUserReady = confirm("Start a new gaem?");
+
+            playRound();
+
+            //check if human won
+            humanScore == 3 ? alert("NVM. You win!") : alert("SIKE. You already lost");
+            
+            //reset the scores
+            humanScore = 0;
+            computerScore = 0;
+
+            //initiate a new game
+            playGame();
+
+            //this functions basically handles the calling of all round functions
+            //get, evaluate the choicea, display the evaluation and update paramters
+            function playRound () {
+                //loop til best of 5
+                while (!checkGameEnd()) {
+                    //get user choice
+                    humanChoice = getHumanChoice();
+                    computerChoice = getComputerChoice();
+
+                    //eval
+                    let winner = checkRoundWinner(humanChoice, computerChoice);
+
+                    //display
+                    outputRoundEndAlert(winner, humanChoice, computerChoice);
+                }
+            }
+        }
+        
+    </script>
+</body>
+</html>
