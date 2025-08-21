@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rock · Paper · Scissors</title>
+  <style>
+    :root{
+      --bg:#0b1220; --panel:#111827; --muted:#94a3b8; --accent:#60a5fa; --win:#22c55e; --lose:#ef4444; --tie:#eab308;
+      --text:#e5e7eb; --soft:#1f2937;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;background:linear-gradient(180deg,#0b1220,#0f172a);color:var(--text)}
+    .container{max-width:960px;margin-inline:auto;padding:24px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+    header h1{font-size:clamp(22px,3vw,28px);margin:0;font-weight:700;letter-spacing:.3px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    button{border:0;border-radius:14px;padding:12px 16px;background:#1f2937;color:var(--text);cursor:pointer;font-weight:600}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .board{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media (max-width:720px){.board{grid-template-columns:1fr}}
+    .card{background:var(--panel);border-radius:18px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+    .scorecards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+    .score{background:var(--soft);border-radius:14px;padding:12px;display:flex;align-items:center;justify-content:space-between}
+    .score h3{margin:0;font-size:14px;font-weight:600;color:var(--muted)}
+    .score .big{font-variant-numeric:tabular-nums;font-size:28px;font-weight:800}
+    .wins{display:flex;gap:6px;margin-top:8px}
+    .pip{width:12px;height:12px;border-radius:999px;background:#273244;opacity:.6}
+    .pip.on{background:var(--accent);opacity:1}
+    .status{margin-top:10px;padding:12px;border-radius:12px;background:#0f172a;border:1px solid #223149}
+    .status p{margin:4px 0}
+    .status .result{font-weight:800}
+    .status.win{border-color:rgba(34,197,94,.35)}
+    .status.lose{border-color:rgba(239,68,68,.35)}
+    .status.tie{border-color:rgba(234,179,8,.35)}
+    .choices{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .choice{flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:18px;padding:14px 16px}
+    .choice span.emo{font-size:22px}
+    .choice[data-choice="rock"]{background:#1e293b}
+    .choice[data-choice="paper"]{background:#243145}
+    .choice[data-choice="scissors"]{background:#2a3950}
+    .history{max-height:260px;overflow:auto;margin-top:10px;border-radius:12px;background:#0f172a;border:1px solid #223149}
+    .history ul{margin:0;padding:10px;list-style:none}
+    .history li{padding:8px 10px;border-bottom:1px dashed #23314a;color:#c7d2fe;font-size:14px}
+    .history li:last-child{border-bottom:0}
+    footer{opacity:.7;font-size:12px;margin-top:14px}
+    .badge{display:inline-flex;gap:6px;align-items:center;padding:6px 10px;border-radius:999px;background:#101827;border:1px solid #223149;color:var(--muted)}
+    .sr{position:absolute;left:-9999px}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Rock · Paper · Scissors</h1>
+      <div class="controls">
+        <button id="newGameBtn">New Game</button>
+        <button id="resetBtn" title="Reset scores">Reset</button>
+        <span class="badge" id="modeBadge">Best of <strong id="targetWinsLabel">5</strong> (first to <strong id="targetWinsShort">3</strong>)</span>
+      </div>
+    </header>
+
+    <section class="board">
+      <!-- LEFT: Play area -->
+      <div class="card">
+        <h2 style="margin:0 0 6px 0;font-size:18px">Make your move</h2>
+        <div class="choices" role="group" aria-label="Choose rock, paper, or scissors">
+          <button class="choice" data-choice="rock"    title="Rock [R]"><span class="emo">✊</span> Rock</button>
+          <button class="choice" data-choice="paper"   title="Paper [P]"><span class="emo">✋</span> Paper</button>
+          <button class="choice" data-choice="scissors" title="Scissors [S]"><span class="emo">✌️</span> Scissors</button>
+        </div>
+
+        <div id="status" class="status" aria-live="polite">
+          <p class="round"><strong>Round:</strong> <span id="roundNo">1</span></p>
+          <p class="picks"><strong>You:</strong> <span id="youPick">–</span> • <strong>CPU:</strong> <span id="cpuPick">–</span></p>
+          <p class="result" id="resultLine">Press “New Game” to start.</p>
+        </div>
+      </div>
+
+      <!-- RIGHT: Score + History -->
+      <div class="card">
+        <h2 style="margin:0 0 6px 0;font-size:18px">Scoreboard</h2>
+        <div class="scorecards">
+          <div class="score">
+            <h3>You</h3>
+            <div class="big" id="humanScore">0</div>
+          </div>
+          <div class="score">
+            <h3>Computer</h3>
+            <div class="big" id="computerScore">0</div>
+          </div>
+        </div>
+
+        <div style="margin-top:6px">
+          <div><small class="muted">Wins to take the game</small></div>
+          <div class="wins" id="humanPips" aria-label="Your wins pips"></div>
+          <div class="wins" id="computerPips" aria-label="Computer wins pips"></div>
+        </div>
+
+        <div class="history" aria-live="polite" aria-label="Round history">
+          <ul id="historyList">
+            <!-- Last rounds appear here -->
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <footer>Tip: use keyboard shortcuts R / P / S for quick moves.</footer>
+    <span class="sr" id="liveAnnounce" aria-live="assertive"></span>
+  </div>
+
+  <script>
+    // ---------- Your original core pieces (adapted) ----------
+    function getComputerChoice () {
+      const n = Math.random();
+      return n < 1/3 ? "rock" : n < 2/3 ? "paper" : "scissors";
+    }
+
+    function checkRoundWinner (humanChoice, computerChoice) {
+      let winner = null;
+      humanChoice == "rock"     && computerChoice == "scissors" ? winner = "human"   :
+      humanChoice == "scissors" && computerChoice == "paper"    ? winner = "human"   :
+      humanChoice == "paper"    && computerChoice == "rock"     ? winner = "human"   :
+      computerChoice == "rock"  && humanChoice == "scissors"    ? winner = "computer":
+      computerChoice == "scissors" && humanChoice == "paper"    ? winner = "computer":
+      computerChoice == "paper" && humanChoice == "rock"        ? winner = "computer":
+      winner = "tie";
+
+      if (winner === "human") humanScore++;
+      else if (winner === "computer") computerScore++;
+      return winner;
+    }
+
+    function checkGameEnd(){ return (humanScore >= targetWins || computerScore >= targetWins); }
+
+    // ---------- UI glue ----------
+    const newGameBtn = document.getElementById('newGameBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const choiceBtns = [...document.querySelectorAll('.choice')];
+
+    const humanScoreEl = document.getElementById('humanScore');
+    const computerScoreEl = document.getElementById('computerScore');
+    const roundNoEl = document.getElementById('roundNo');
+    const youPickEl = document.getElementById('youPick');
+    const cpuPickEl = document.getElementById('cpuPick');
+    const resultLineEl = document.getElementById('resultLine');
+    const statusBox = document.getElementById('status');
+    const historyList = document.getElementById('historyList');
+    const humanPips = document.getElementById('humanPips');
+    const computerPips = document.getElementById('computerPips');
+    const liveAnnounce = document.getElementById('liveAnnounce');
+    const targetWinsLabel = document.getElementById('targetWinsLabel');
+    const targetWinsShort = document.getElementById('targetWinsShort');
+
+    let humanScore = 0, computerScore = 0, roundNo = 1;
+    let targetWins = 3; // first to 3 → best of 5
+
+    function makePips(container, filled){
+      container.innerHTML = "";
+      for (let i=0;i<targetWins;i++){
+        const d=document.createElement('div');
+        d.className='pip' + (i<filled ? ' on':'');
+        container.appendChild(d);
+      }
+    }
+
+    function syncUI (opts={}) {
+      if (opts.humanChoice){ youPickEl.textContent = cap(opts.humanChoice); }
+      if (opts.cpuChoice){ cpuPickEl.textContent = cap(opts.cpuChoice); }
+      if (opts.winner){
+        const map = {human:['You win this round!', 'win'], computer:['Computer wins this round.', 'lose'], tie:['It’s a tie.', 'tie']};
+        resultLineEl.textContent = map[opts.winner][0];
+        statusBox.classList.remove('win','lose','tie');
+        statusBox.classList.add(map[opts.winner][1]);
+        liveAnnounce.textContent = `Round ${roundNo}: ${resultLineEl.textContent}`;
+      }
+      humanScoreEl.textContent = humanScore;
+      computerScoreEl.textContent = computerScore;
+      makePips(humanPips, humanScore);
+      makePips(computerPips, computerScore);
+      roundNoEl.textContent = roundNo;
+    }
+
+    function cap(s){ return s[0].toUpperCase()+s.slice(1); }
+
+    function addHistoryLine({round, you, cpu, winner}){
+      const li=document.createElement('li');
+      const verdict = winner==='human'?'✅ You': winner==='computer'?'❌ CPU':'⏸️ Tie';
+      li.textContent = `R${round}: You ${cap(you)} vs CPU ${cap(cpu)} → ${verdict}`;
+      historyList.prepend(li);
+    }
+
+    function setEnabledPlaying(enabled){
+      choiceBtns.forEach(b => b.disabled = !enabled);
+      resetBtn.disabled = !enabled;
+    }
+
+    function startGame(){
+      humanScore = 0; computerScore = 0; roundNo = 1;
+      historyList.innerHTML = "";
+      resultLineEl.textContent = "Game on. Choose your move!";
+      youPickEl.textContent = "–";
+      cpuPickEl.textContent = "–";
+      targetWinsLabel.textContent = (targetWins*2-1); // best of X
+      targetWinsShort.textContent = targetWins;
+      syncUI();
+      setEnabledPlaying(true);
+    }
+
+    function endGame(){
+      setEnabledPlaying(false);
+      const youWon = humanScore > computerScore;
+      statusBox.classList.remove('win','lose','tie');
+      statusBox.classList.add(youWon?'win':'lose');
+      resultLineEl.textContent = youWon ? "🎉 You won the game!" : "🤖 Computer won the game.";
+      liveAnnounce.textContent = resultLineEl.textContent;
+    }
+
+    choiceBtns.forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const humanChoice = btn.dataset.choice;
+        const cpuChoice = getComputerChoice();
+        const winner = checkRoundWinner(humanChoice, cpuChoice);
+
+        syncUI({humanChoice, cpuChoice, winner});
+        addHistoryLine({round: roundNo, you: humanChoice, cpu: cpuChoice, winner});
+        if (checkGameEnd()){ endGame(); return; }
+
+        roundNo++;
+        syncUI();
+      });
+    });
+
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (e)=>{
+      const k=e.key.toLowerCase();
+      if (k==='r') document.querySelector('[data-choice="rock"]').click();
+      if (k==='p') document.querySelector('[data-choice="paper"]').click();
+      if (k==='s') document.querySelector('[data-choice="scissors"]').click();
+    });
+
+    newGameBtn.addEventListener('click', startGame);
+    resetBtn.addEventListener('click', startGame);
+
+    // Initially disabled until the player clicks "New Game"
+    setEnabledPlaying(false);
+  </script>
+</body>
+</html>
