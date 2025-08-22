@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Etch-A-Sketch</title>
+<style>
+  :root{
+    --bg:#0f172a;      /* slate-900 */
+    --panel:#111827;   /* gray-900 */
+    --ink:#e5e7eb;     /* gray-200 */
+    --accent:#3b82f6;  /* blue-500 */
+    --muted:#334155;   /* slate-700 */
+    --radius:14px;
+    --gap:12px;
+  }
+  * { box-sizing: border-box; }
+  body{
+    margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+    color:var(--ink); background:radial-gradient(80vw 80vh at 70% -10%, #1e293b 0, var(--bg) 60%);
+    min-height:100vh; display:grid; place-items:center; padding:28px;
+  }
+  .wrap{
+    width:min(1100px, 92vw); display:grid; grid-template-columns: 340px 1fr; gap:28px;
+    align-items:start;
+  }
+  .panel{
+    background:linear-gradient(145deg, #171f2e, #0b1220); border:1px solid #1f2937; border-radius:var(--radius);
+    padding:20px; box-shadow: 0 20px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  h1{margin:0 0 6px; font-size:22px; letter-spacing:.4px}
+  .sub{margin:0 0 18px; color:#94a3b8; font-size:13px}
+  .controls{display:grid; gap:14px}
+  .row{display:grid; gap:8px}
+  .row.inline{grid-template-columns: 1fr auto; align-items:center}
+  label{font-size:13px; color:#cbd5e1}
+  input[type="range"]{
+    width:100%;
+    appearance:none; height:6px; background:var(--muted); border-radius:999px; outline:none;
+  }
+  input[type="range"]::-webkit-slider-thumb{
+    appearance:none; width:18px; height:18px; background:var(--accent); border-radius:50%;
+    box-shadow:0 0 0 3px rgba(59,130,246,.25);
+  }
+  input[type="color"]{
+    width:44px; height:34px; padding:0; border:none; border-radius:8px; background:#0b1220;
+  }
+  .btns{display:grid; grid-template-columns:repeat(2, 1fr); gap:10px}
+  button{
+    border:1px solid #23304a; background:#0c1424; color:#e2e8f0; padding:10px 12px; border-radius:10px;
+    font:600 13px/1 ui-sans-serif,system-ui; cursor:pointer; transition:.18s transform ease,.18s background ease,.18s border ease;
+  }
+  button:hover{ transform:translateY(-1px); }
+  button.active{ background:#133362; border-color:#1e40af; }
+  .danger{ background:#3f1214; border-color:#7f1d1d; }
+  .gridlines-toggle{ display:flex; gap:10px; align-items:center; font-size:13px; color:#cbd5e1}
+  .number-badge{
+    background:#0b1220; border:1px solid #1f2937; padding:6px 10px; border-radius:8px; font-size:12px; color:#cbd5e1;
+  }
+
+  /* Board */
+  .board{
+    aspect-ratio:1/1; width:100%; background:#0b1220; border-radius:var(--radius);
+    padding:14px; border:1px solid #1f2937; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 20px 60px rgba(0,0,0,.45);
+    display:grid;
+  }
+  #grid{
+    display:grid; gap:0; width:100%; height:100%;
+    background:#0b1220; border-radius:10px; overflow:hidden;
+  }
+  .cell{ background:transparent; }
+  #grid.gridlines .cell{ outline:1px solid rgba(148,163,184,.08); outline-offset:-1px; }
+
+  /* Footer note */
+  .hint{font-size:12px; color:#94a3b8; margin-top:10px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <aside class="panel">
+      <h1>Etch-A-Sketch</h1>
+      <p class="sub">Click & drag to draw. Use the tools below.</p>
+
+      <div class="controls">
+        <div class="row">
+          <label for="size">Grid size: <span id="sizeLabel" class="number-badge">32 × 32</span></label>
+          <input id="size" type="range" min="4" max="80" value="32" step="1" />
+        </div>
+
+        <div class="row inline">
+          <label for="color">Ink color</label>
+          <input id="color" type="color" value="#22c55e" />
+        </div>
+
+        <div class="btns">
+          <button id="mode-draw" class="active" type="button">Draw</button>
+          <button id="mode-erase" type="button">Erase</button>
+          <button id="mode-rainbow" type="button">Rainbow</button>
+          <button id="mode-shade" type="button">Shade</button>
+        </div>
+
+        <div class="row gridlines-toggle">
+          <input id="gridlines" type="checkbox" checked />
+          <label for="gridlines">Show gridlines</label>
+        </div>
+
+        <div class="btns">
+          <button id="toggle-hover" type="button">Hover mode: Off</button>
+          <button id="clear" class="danger" type="button">Shake to clear</button>
+        </div>
+
+        <p class="hint">Tip: hold mouse/touch and move to draw. Try “Rainbow” for random colors or “Shade” to build opacity in 10% steps.</p>
+      </div>
+    </aside>
+
+    <main class="board">
+      <div id="grid" class="gridlines" aria-label="drawing grid" role="application"></div>
+    </main>
+  </div>
+
+<script>
+(() => {
+  const grid    = document.getElementById('grid');
+  const sizeEl  = document.getElementById('size');
+  const sizeLbl = document.getElementById('sizeLabel');
+  const colorEl = document.getElementById('color');
+  const gridlinesEl = document.getElementById('gridlines');
+
+  const btnDraw   = document.getElementById('mode-draw');
+  const btnErase  = document.getElementById('mode-erase');
+  const btnRainbow= document.getElementById('mode-rainbow');
+  const btnShade  = document.getElementById('mode-shade');
+  const btnClear  = document.getElementById('clear');
+  const btnHover  = document.getElementById('toggle-hover');
+
+  let currentColor = colorEl.value;
+  let mode = 'draw';          // 'draw' | 'erase' | 'rainbow' | 'shade'
+  let isPointerDown = false;  // click-and-drag
+  let hoverMode = false;      // draw on hover without holding click
+
+  // --- Helpers ---
+  const setActive = (btn) => {
+    [btnDraw, btnErase, btnRainbow, btnShade].forEach(b => b.classList.toggle('active', b === btn));
+  };
+
+  function updateSizeLabel(n){
+    sizeLbl.textContent = `${n} × ${n}`;
+  }
+
+  function randomRGB(){
+    const r = Math.floor(Math.random()*256);
+    const g = Math.floor(Math.random()*256);
+    const b = Math.floor(Math.random()*256);
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  function paint(cell){
+    if (!cell || !cell.classList.contains('cell')) return;
+
+    switch (mode){
+      case 'erase':
+        cell.style.backgroundColor = 'transparent';
+        cell.style.opacity = '';
+        cell.dataset.opacity = '0';
+        break;
+
+      case 'rainbow':
+        cell.style.backgroundColor = randomRGB();
+        cell.style.opacity = '1';
+        cell.dataset.opacity = '1';
+        break;
+
+      case 'shade': {
+        let op = parseFloat(cell.dataset.opacity || '0');
+        op = Math.min(op + 0.1, 1);
+        cell.dataset.opacity = op.toFixed(2);
+        cell.style.backgroundColor = currentColor;
+        cell.style.opacity = op;
+        break;
+      }
+
+      default: // draw
+        cell.style.backgroundColor = currentColor;
+        cell.style.opacity = '1';
+        cell.dataset.opacity = '1';
+    }
+  }
+
+  // --- Grid generation ---
+  function buildGrid(n){
+    grid.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+    grid.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    const total = n * n;
+    for (let i=0; i<total; i++){
+      const cell = document.createElement('div');
+      cell.className = 'cell';
+      cell.dataset.opacity = '0';
+      frag.appendChild(cell);
+    }
+    grid.appendChild(frag);
+  }
+
+  // --- Events ---
+  // Pointer logic: draw on pointerover if dragging OR hoverMode enabled
+  grid.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return; // left-click only
+    isPointerDown = true;
+    paint(e.target);
+  });
+  grid.addEventListener('pointerover', e => {
+    if (hoverMode || isPointerDown) paint(e.target);
+  });
+  document.addEventListener('pointerup', () => isPointerDown = false);
+
+  // Controls
+  sizeEl.addEventListener('input', e => {
+    const n = parseInt(e.target.value, 10);
+    updateSizeLabel(n);
+    buildGrid(n);
+  });
+
+  colorEl.addEventListener('input', e => currentColor = e.target.value);
+
+  gridlinesEl.addEventListener('change', e => {
+    grid.classList.toggle('gridlines', e.target.checked);
+  });
+
+  btnDraw.addEventListener('click', () => { mode='draw'; setActive(btnDraw); });
+  btnErase.addEventListener('click', () => { mode='erase'; setActive(btnErase); });
+  btnRainbow.addEventListener('click', () => { mode='rainbow'; setActive(btnRainbow); });
+  btnShade.addEventListener('click', () => { mode='shade'; setActive(btnShade); });
+
+  btnClear.addEventListener('click', () => {
+    grid.querySelectorAll('.cell').forEach(c => {
+      c.style.backgroundColor = 'transparent';
+      c.style.opacity = '';
+      c.dataset.opacity = '0';
+    });
+  });
+
+  btnHover.addEventListener('click', () => {
+    hoverMode = !hoverMode;
+    btnHover.textContent = `Hover mode: ${hoverMode ? 'On' : 'Off'}`;
+    btnHover.classList.toggle('active', hoverMode);
+  });
+
+  // Keyboard accessibility: hold space to draw while moving focus with arrow keys
+  document.addEventListener('keydown', e => {
+    if (e.code === 'Space') isPointerDown = true;
+  });
+  document.addEventListener('keyup', e => {
+    if (e.code === 'Space') isPointerDown = false;
+  });
+
+  // Init
+  updateSizeLabel(sizeEl.value);
+  buildGrid(parseInt(sizeEl.value, 10));
+})();
+</script>
+</body>
+</html>
