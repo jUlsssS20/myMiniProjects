@@ -68,8 +68,9 @@ function clear() {
 }
 
 function backspace() {
-    if (currentNumber == "0") return;
-    currentNumber = currentNumber.slice(0, -1);
+    (currentNumber == "0" || currentNumber.length == 1)
+    ? currentNumber = "0"
+    : currentNumber = currentNumber.slice(0, -1);
     numberDisplay.textContent = currentNumber;
 }
 
